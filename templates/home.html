@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TealTune - Music Dashboard</title>
+    <style>
+      :root {
+        --primary: #00b3a6;
+        --primary-light: #00d2bf;
+        --background: #f0fdfd;
+        --card: #fff;
+        --foreground: #0a1f1c;
+      }
+      body {
+        margin: 0;
+        font-family: "Arial", sans-serif;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      header {
+        background: var(--primary);
+        color: white;
+        padding: 1rem;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        z-index: 1000;
+      }
+      header input {
+        flex: 1;
+        padding: 0.6rem;
+        border-radius: 5px;
+        border: none;
+      }
+      header button {
+        background: white;
+        color: var(--primary);
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      header button:hover {
+        background: #f2f2f2;
+      }
+      main {
+        padding: 2rem;
+      }
+      #songs-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+      .song-card {
+        background: var(--card);
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .song-card img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 8px;
+      }
+      audio {
+        width: 100%;
+        margin-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🎵 TealTune Music</h1>
+      <input type="text" id="song-search" placeholder="Search songs..." />
+      <button id="logout-btn">Logout</button>
+    </header>
+    <main>
+      <div id="songs-list"></div>
+    </main>
+    <script>
+      const API_BASE = "http://localhost:5000/api";
+      const searchInput = document.getElementById("song-search");
+      const songsList = document.getElementById("songs-list");
+
+      document.getElementById("logout-btn").addEventListener("click", () => {
+        window.location.href = "/";
+      });
+
+      let allSongs = [];
+
+      // 👇 Updated: no empty API call on load
+      function loadSongs() {
+        songsList.innerHTML = "<p>Start typing above to search for songs.</p>";
+        allSongs = [];
+      }
+
+      async function searchSongs(term) {
+        if (!term) {
+          displaySongs(allSongs);
+          return;
+        }
+        try {
+          const res = await fetch(
+            `${API_BASE}/search-song?q=${encodeURIComponent(term)}`
+          );
+          const results = await res.json();
+          displaySongs(results);
+        } catch (e) {
+          console.error(e);
+          songsList.innerHTML = "<p>Error loading search results</p>";
+        }
+      }
+
+      function displaySongs(songs) {
+        songsList.innerHTML = "";
+
+        // 👇 Extra safety: if backend returns error object
+        if (!Array.isArray(songs)) {
+          console.error("Invalid songs response:", songs);
+          songsList.innerHTML = "<p>Error loading songs</p>";
+          return;
+        }
+
+        if (!songs || songs.length === 0) {
+          songsList.innerHTML = "<p>No songs found</p>";
+          return;
+        }
+        songs.forEach((song) => {
+          const card = document.createElement("div");
+          card.className = "song-card";
+          card.innerHTML = `
+            <img src="${
+              song.cover || "https://via.placeholder.com/250x150"
+            }" alt="${song.title}">
+            <h3>${song.title}</h3>
+            <p>${song.artist}</p>
+            <p><em>${song.album}</em></p>
+            <audio controls src="${song.preview || ""}"></audio>
+          `;
+          songsList.appendChild(card);
+        });
+      }
+
+      searchInput.addEventListener("input", (e) => {
+        searchSongs(e.target.value.trim());
+      });
+
+      loadSongs();
+    </script>
+  </body>
+</html>
